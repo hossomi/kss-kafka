@@ -2,6 +2,7 @@ package br.com.hossomi.kss.kafka.chat;
 
 import br.com.hossomi.kss.kafka.chat.consumer.ListenableConsumer;
 import br.com.hossomi.kss.kafka.chat.consumer.ListenableScanner;
+import br.com.hossomi.kss.kafka.chat.exception.RetriableException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -23,7 +24,6 @@ import java.util.concurrent.Future;
 
 import static java.util.Arrays.asList;
 import static java.util.concurrent.CompletableFuture.supplyAsync;
-import static java.util.concurrent.Executors.newSingleThreadExecutor;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 @Slf4j
@@ -31,6 +31,7 @@ public class Chat {
 
     private static final String KAFKA_URL = "localhost:9092";
     private static final String TOPIC = "messages-2";
+    private static final double ERROR_RATE = 0;
 
     private ListenableConsumer<String, String> consumer;
     private KafkaProducer<String, String> producer;
@@ -50,6 +51,9 @@ public class Chat {
     }
 
     private void printMessage(ConsumerRecord<String, String> rec) {
+        if (rec.value().equalsIgnoreCase("scala")) throw new IllegalArgumentException("Scala not allowed!");
+        if (Math.random() < ERROR_RATE) throw new RetriableException(rec);
+
         System.out.printf("[%s] (%d) %s > %s\n",
                 new Date(rec.timestamp()),
                 rec.partition(),
