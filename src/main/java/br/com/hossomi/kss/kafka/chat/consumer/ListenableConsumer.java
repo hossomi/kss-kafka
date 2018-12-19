@@ -1,11 +1,8 @@
 package br.com.hossomi.kss.kafka.chat.consumer;
 
-import br.com.hossomi.kss.kafka.chat.exception.RetriableException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.Consumer;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
 
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -31,15 +28,9 @@ public class ListenableConsumer<K, V> implements Runnable, AutoCloseable {
                 ConsumerRecords<K, V> records = consumer.poll(ofMillis(1000));
                 log.debug("Received {} records", records.count());
 
-                try {
-                    stream(records.spliterator(), false)
-                            .sorted((rec1, rec2) -> (int) (rec1.timestamp() - rec2.timestamp()))
-                            .forEach(this::notifyListener);
-                }
-                catch (RetriableException e) {
-                    System.out.println("Error processing message; retrying...");
-                    consumer.seek(new TopicPartition(e.record.topic(), e.record.partition()), e.record.offset());
-                }
+                stream(records.spliterator(), false)
+                        .sorted((rec1, rec2) -> (int) (rec1.timestamp() - rec2.timestamp()))
+                        .forEach(listener::onRecord);
             }
         }
         catch (WakeupException e) {
@@ -48,16 +39,6 @@ public class ListenableConsumer<K, V> implements Runnable, AutoCloseable {
         finally {
             log.debug("Closing consumer");
             consumer.close();
-        }
-    }
-
-    private void notifyListener(ConsumerRecord<K, V> record) {
-        try {
-            listener.onRecord(record);
-        }
-        catch (Exception e) {
-            if (e instanceof RetriableException) throw e;
-            else System.out.println("Could not send your message: " + e.getMessage());
         }
     }
 
