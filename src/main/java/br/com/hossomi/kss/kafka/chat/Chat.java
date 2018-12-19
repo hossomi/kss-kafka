@@ -35,13 +35,14 @@ public class Chat {
     private ListenableConsumer<String, String> consumer;
     private KafkaProducer<String, String> producer;
     private String name;
+    private boolean error = false;
 
     public void start() throws Exception {
         ListenableScanner scanner = new ListenableScanner(new Scanner(System.in), this::sendMessage);
         System.out.print("Name: ");
         name = scanner.read();
 
-        consumer = new ListenableConsumer<>(createConsumer(), this::printMessage);
+        consumer = new ListenableConsumer<>(createConsumer(name), this::printMessage);
         new Thread(consumer).start();
 
         producer = createProducer();
@@ -50,6 +51,13 @@ public class Chat {
     }
 
     private void printMessage(ConsumerRecord<String, String> rec) {
+        if (rec.value().equalsIgnoreCase("error")) {
+            error = !error;
+            System.out.println("Error was set to " + error);
+            return;
+        }
+
+        if (error) throw new IllegalArgumentException();
         System.out.printf("[%s] (%d) %s > %s\n",
                 new Date(rec.timestamp()),
                 rec.partition(),
@@ -61,11 +69,12 @@ public class Chat {
         return producer.send(new ProducerRecord<>(TOPIC, name, line));
     }
 
-    private KafkaConsumer<String, String> createConsumer() {
+    private KafkaConsumer<String, String> createConsumer(String groupId) {
         Properties properties = new Properties();
         properties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_URL);
-        properties.put(ConsumerConfig.GROUP_ID_CONFIG, UUID.randomUUID().toString());
+        properties.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
         properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        properties.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
         properties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         properties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         KafkaConsumer<String, String> consumer = new KafkaConsumer<>(properties);
