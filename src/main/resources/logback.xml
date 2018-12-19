@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration debug="false">
 
-    <logger name="br.com.hossomi.kss.kafka" level="debug"/>
+    <logger name="br.com.hossomi.kss.kafka" level="info"/>
 
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>

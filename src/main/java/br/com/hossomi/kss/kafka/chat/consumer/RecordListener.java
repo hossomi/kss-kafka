@@ -1,4 +1,4 @@
-package br.com.hossomi.kss.kafka.consumer;
+package br.com.hossomi.kss.kafka.chat.consumer;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 

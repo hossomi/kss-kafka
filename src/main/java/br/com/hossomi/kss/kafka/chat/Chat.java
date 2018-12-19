@@ -1,7 +1,7 @@
-package br.com.hossomi.kss.kafka;
+package br.com.hossomi.kss.kafka.chat;
 
-import br.com.hossomi.kss.kafka.consumer.ListenableConsumer;
-import br.com.hossomi.kss.kafka.consumer.ListenableScanner;
+import br.com.hossomi.kss.kafka.chat.consumer.ListenableConsumer;
+import br.com.hossomi.kss.kafka.chat.consumer.ListenableScanner;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -20,11 +20,8 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
-import static java.lang.Runtime.getRuntime;
 import static java.util.Arrays.asList;
-import static java.util.concurrent.CompletableFuture.completedFuture;
 import static java.util.concurrent.CompletableFuture.supplyAsync;
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -39,7 +36,7 @@ public class Chat {
     private KafkaProducer<String, String> producer;
     private String name;
 
-    private void start() throws Exception {
+    public void start() throws Exception {
         ListenableScanner scanner = new ListenableScanner(new Scanner(System.in), this::sendMessage);
         System.out.print("Name: ");
         name = scanner.read();
@@ -50,8 +47,6 @@ public class Chat {
         producer = createProducer();
         sendMessage("Entered the room");
         scanner.readUntilQuit("quit");
-
-        close();
     }
 
     private void printMessage(ConsumerRecord<String, String> rec) {
@@ -92,7 +87,10 @@ public class Chat {
         log.debug("Closing chat");
         consumer.close();
         return completable(sendMessage("Left the room"))
-                .thenRun(() -> producer.close(1000, MILLISECONDS));
+                .handle((x, e) -> {
+                    producer.close(1000, MILLISECONDS);
+                    return null;
+                });
     }
 
     // ----------------------------------------
@@ -103,24 +101,14 @@ public class Chat {
                 return future.get();
             }
             catch (InterruptedException | ExecutionException e) {
-                return null;
+                throw new RuntimeException(e);
             }
-        }, newSingleThreadExecutor());
+        });
     }
 
     public static void main(String[] args) throws Exception {
         Chat chat = new Chat();
-
-        getRuntime().addShutdownHook(new Thread(() -> {
-            try {
-                chat.close().get();
-                System.out.println("XABLAUAS");
-            }
-            catch (Exception e) {
-                log.error("Chat did not close nicely", e);
-            }
-        }));
-
         chat.start();
+        chat.close().get();
     }
 }

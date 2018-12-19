@@ -1,4 +1,4 @@
-package br.com.hossomi.kss.kafka.consumer;
+package br.com.hossomi.kss.kafka.chat.consumer;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.Consumer;
@@ -40,8 +40,6 @@ public class ListenableConsumer<K, V> implements Runnable, AutoCloseable {
             log.debug("Closing consumer");
             consumer.close();
         }
-
-        System.out.println("EXITED");
     }
 
     public void close() {

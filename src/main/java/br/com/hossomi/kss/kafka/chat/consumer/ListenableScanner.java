@@ -1,4 +1,4 @@
-package br.com.hossomi.kss.kafka.consumer;
+package br.com.hossomi.kss.kafka.chat.consumer;
 
 import lombok.extern.slf4j.Slf4j;
 
